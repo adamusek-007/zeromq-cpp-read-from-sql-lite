@@ -1,5 +1,6 @@
 1. lastInsertionDateTime = getLatestInsertionDateForRobot
 2. timeDifference = checkTimesDiffrence(lastInsertionDateTime)
+3. checkDataDifferenceCount
 3. if (timeDifference > 1) {
         sendMissingData();
     } else {
