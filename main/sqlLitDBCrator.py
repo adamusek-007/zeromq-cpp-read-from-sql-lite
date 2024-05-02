@@ -66,13 +66,18 @@ def create_connection(db_file):
             """CREATE TABLE IF NOT EXISTS sensor_data
                         (id INTEGER PRIMARY KEY,
                         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        temperature REAL,
+                        temperatures_id REAL,
                         humidity REAL,
                         pressure REAL,
                         air_quality REAL,
                         laser_distance REAL,
                         ultrasonic_distance REAL,
-                        lightness REAL)"""
+                        lightness REAL);
+                CREATE TABLE IF NOT EXISTS temperatures 
+                        (id INTEGER PRIMARY KEY,
+                        terometer_id INTEGER,
+                        temperature REAL);
+                """
         )
         connection.commit()
         insertRandomData(connection)
