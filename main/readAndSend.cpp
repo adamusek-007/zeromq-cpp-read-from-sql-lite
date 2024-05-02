@@ -2,38 +2,23 @@
 #include <sqlite3.h>
 #include <zmq.hpp>
 #include "readAndSend.h"
-
-int main()
+using namespace std;
+class RawDataSender
 {
-    sqlite3 *db;
-    char *zErrMsg = 0;
-    int dbDriver;
-
-    zmq::context_t context(1);
-    zmq::socket_t socket(context, ZMQ_PUSH);
-    socket.connect("tcp://localhost:5555");
-
-    dbDriver = sqlite3_open("database.db", &db);
-
-    bool retFlag;
-    int retVal = checkDbDriver(dbDriver, db, retFlag);
-    if (retFlag)
-        return retVal;
-
-    const char *sql = "SELECT * FROM sensor_data";
-    sqlite3_stmt *stmt;
-
-    dbDriver = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-
-    if (dbDriver != SQLITE_OK)
+public:
+    RawDataSender()
     {
-        std::cerr << "Failed to execute statement: " << sqlite3_errmsg(db) << std::endl;
-        return 1;
+        cout << "Main object created successfully" << endl;
+        main();
     }
-    int counter = 0;
-    while ((dbDriver = sqlite3_step(stmt)) == SQLITE_ROW)
+
+private:
+    const string address = "tcp://localhost:5555";
+    const char *databaseFileName = "database.db";
+    const char *sql = "SELECT * FROM sensor_data";
+
+    string getMessage(sqlite3_stmt *stmt)
     {
-        counter++;
         int id = sqlite3_column_int(stmt, 0);
         const unsigned char *timestamp = sqlite3_column_text(stmt, 1);
         double temperature = sqlite3_column_double(stmt, 2);
@@ -49,30 +34,69 @@ int main()
             << pressure << "," << air_quality << "," << laser_distance << ","
             << ultrasonic_distance << "," << lightness;
         std::string message = oss.str();
-        std::cout << counter << " Mess: " << message.c_str() << " Size: " << message.size() << std::endl;
+        return message;
 
-        zmq::message_t zmq_message(message.size());
-        memcpy(zmq_message.data(), message.c_str(), message.size());
-        socket.send(zmq_message, zmq::send_flags::none);
     }
+    int main()
+    {
+        sqlite3 *db;
+        char *zErrMsg = 0;
+        int dbDriver;
 
-    sqlite3_finalize(stmt);
-    sqlite3_close(db);
+        zmq::context_t context(1);
+        zmq::socket_t socket(context, ZMQ_PUSH);
+        socket.connect(address);
 
-    return 0;
-}
+        dbDriver = sqlite3_open(databaseFileName, &db);
 
-int checkDbDriver(int dbDriver, sqlite3 *db, bool &retFlag)
+        bool retFlag;
+        int retVal = checkDbDriver(dbDriver, db, retFlag);
+        if (retFlag)
+            return retVal;
+
+        sqlite3_stmt *stmt;
+
+        dbDriver = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+
+        if (dbDriver != SQLITE_OK)
+        {
+            std::cerr << "Failed to execute statement: " << sqlite3_errmsg(db) << std::endl;
+            return 1;
+        }
+        int counter = 0;
+
+        while ((dbDriver = sqlite3_step(stmt)) == SQLITE_ROW)
+        {
+            counter++;
+            string message = getMessage(stmt);
+            std::cout << counter << " Mess: " << message.c_str() << " Size: " << message.size() << std::endl;
+            zmq::message_t zmq_message(message.size());
+            memcpy(zmq_message.data(), message.c_str(), message.size());
+            socket.send(zmq_message, zmq::send_flags::none);
+        }
+
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+
+        return 0;
+    }
+    int checkDbDriver(int dbDriver, sqlite3 *db, bool &retFlag)
+    {
+        if (dbDriver)
+        {
+            std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
+            return (0);
+        }
+        else
+        {
+            std::cout << "Opened database successfully" << std::endl;
+            return (1);
+        }
+        return {};
+    }
+};
+int main()
 {
-    if (dbDriver)
-    {
-        std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
-        return (0);
-    }
-    else
-    {
-        std::cout << "Opened database successfully" << std::endl;
-        return (1);
-    }
-    return {};
+    RawDataSender main;
+    return 0;
 }
