@@ -29,11 +29,11 @@ private:
         double ultrasonic_distance = sqlite3_column_double(stmt, 7);
         double lightness = sqlite3_column_double(stmt, 8);
 
-        std::ostringstream oss;
+        ostringstream oss;
         oss << id << "," << timestamp << "," << temperature << "," << humidity << ","
             << pressure << "," << air_quality << "," << laser_distance << ","
             << ultrasonic_distance << "," << lightness;
-        std::string message = oss.str();
+        string message = oss.str();
         return message;
 
     }
@@ -60,7 +60,7 @@ private:
 
         if (dbDriver != SQLITE_OK)
         {
-            std::cerr << "Failed to execute statement: " << sqlite3_errmsg(db) << std::endl;
+            cerr << "Failed to execute statement: " << sqlite3_errmsg(db) << endl;
             return 1;
         }
         int counter = 0;
@@ -69,7 +69,7 @@ private:
         {
             counter++;
             string message = getMessage(stmt);
-            std::cout << counter << " Mess: " << message.c_str() << " Size: " << message.size() << std::endl;
+            cout << counter << " Mess: " << message.c_str() << " Size: " << message.size() << endl;
             zmq::message_t zmq_message(message.size());
             memcpy(zmq_message.data(), message.c_str(), message.size());
             socket.send(zmq_message, zmq::send_flags::none);
@@ -84,12 +84,12 @@ private:
     {
         if (dbDriver)
         {
-            std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
+            cerr << "Can't open database: " << sqlite3_errmsg(db) << endl;
             return (0);
         }
         else
         {
-            std::cout << "Opened database successfully" << std::endl;
+            cout << "Opened database successfully" << endl;
             return (1);
         }
         return {};
